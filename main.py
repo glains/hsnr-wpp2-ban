@@ -1,7 +1,5 @@
 from prep.prep_data import prepare_data
 
-print('creating project structure')
-
 
 def main():
     prepare_data()

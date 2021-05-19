@@ -7,6 +7,7 @@ def prepare_data():
 
 
 def create_structure():
+    print('creating project structure')
     Path("../images").mkdir(exist_ok=True)
     Path('../labels').mkdir(exist_ok=True)
     Path('../colors').mkdir(exist_ok=True)
