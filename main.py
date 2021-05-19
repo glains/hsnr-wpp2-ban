@@ -2,6 +2,7 @@ from prep.prep_data import prepare_data
 import argparse
 from pathlib import Path
 
+
 def main():
     parser = argparse.ArgumentParser()
 
