@@ -16,11 +16,29 @@ class Layer:
         self.mrt_path = mrt_path
         self.contours = contours_path
 
+    def process(self):
+        self._convert_data()
+
+    def _convert_data(self):
+        ds = pydicom.dcmread(self.mrt_path)
+        window_center = ds[0x0028, 0x1050]
+        window_width = ds[0x0028, 0x1051]
+        target = np.zeros((len(ds.pixel_array), len(ds.pixel_array[0]), 1), dtype=np.uint8)
+        for y, row in enumerate(ds.pixel_array):
+            for x, pixel in enumerate(row):
+                if pixel > 255:
+                    target[x, y] = gray_scale_transform(pixel, 0, 255, window_center.value, window_width.value)
+        return target
+
 
 def prepare_data(dicom_path, output_path):
     create_structure(output_path)
-    read_data(dicom_path)
+
     print('prepare data')
+    mrts = read_data(dicom_path)
+    for mrt in mrts:
+        for layer in mrt.layers:
+            layer.process()
 
 
 def create_structure(output_path):
@@ -65,21 +83,3 @@ def read_data(base_path):
         mrts.append(mrt)
 
     return mrts
-
-
-def convert_data(filepath):
-    ds = pydicom.dcmread(filepath)
-    window_center = ds[0x0028, 0x1050]
-    window_width = ds[0x0028, 0x1051]
-    target = np.zeros((len(ds.pixel_array), len(ds.pixel_array[0]), 1), dtype=np.uint8)
-    for y, row in enumerate(ds.pixel_array):
-        for x, pixel in enumerate(row):
-            if pixel > 255:
-                target[x, y] = gray_scale_transform(pixel, 0, 255, window_center.value, window_width.value)
-    return target
-
-
-target = convert_data(filename)
-
-# plt.imshow(target, cmap='gray')
-# plt.waitforbuttonpress()
