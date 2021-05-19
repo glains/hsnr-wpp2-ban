@@ -5,8 +5,8 @@ from pathlib import Path
 def main():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-i', type=Path, action='store', dest='inputPath')
-    parser.add_argument('-o', type=Path, action='store', dest='outputPath')
+    parser.add_argument('-i', type=Path, action='store', dest='inputPath', required=True)
+    parser.add_argument('-o', type=Path, action='store', dest='outputPath', required=True)
 
     args = parser.parse_args()
 
