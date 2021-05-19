@@ -26,10 +26,11 @@ class Layer:
         self.mrt_path = mrt_path
         self.contours = contours_path
         self.gray_img = None
+        self.name = mrt_path.stem
 
     def process(self):
         self._convert_data()
-        contour = self._remove_background()
+        self._remove_background()
 
     def _convert_data(self):
         ds = pydicom.dcmread(self.mrt_path)
@@ -44,7 +45,7 @@ class Layer:
         self.gray_img = target
     
     def _remove_background(self):
-        buf = cv2.blur(self.gray_img,(3, 3))
+        buf = cv2.blur(self.gray_img,(5, 5))
         buf = cv2.threshold(buf, 36, 255, cv2.THRESH_BINARY)[1]
         contours = []
         contours, _ = cv2.findContours(buf,cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE, contours=contours)
@@ -60,11 +61,26 @@ class Layer:
         mask = np.zeros((buf.shape[0], buf.shape[1], 1), dtype=np.uint8)
         mask = cv2.drawContours(mask, [maxContour], -1, 1, cv2.FILLED)
         
-        self.gray_img = cv2.multiply(self.gray_img, mask)
-        test = self.gray_img
-        
-        return maxContour
 
+        hull = cv2.convexHull(maxContour)
+
+        convexMask = np.zeros((self.gray_img.shape[0], self.gray_img.shape[1], 1), dtype=np.uint8)
+        convexMask = cv2.drawContours(convexMask, [hull], -1, 1, cv2.FILLED)
+        diff = convexMask - mask       
+
+        maxBoneSize = 0
+        maxBone = None
+        for contour in cv2.findContours(diff, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)[0]:
+            size = cv2.contourArea(contour)
+            if size > maxBoneSize:
+                maxBoneSize = size
+                maxBone = contour
+
+        boneImg = np.zeros(diff.shape, dtype=np.uint8)
+        boneImg = cv2.drawContours(boneImg, [maxBone], -1, 1, cv2.FILLED)
+        
+        mask += boneImg
+        self.gray_img = cv2.multiply(self.gray_img, mask)
 
 def prepare_data(dicom_path, output_path):
     create_structure(output_path)
@@ -72,9 +88,11 @@ def prepare_data(dicom_path, output_path):
     print('prepare data')
     mrts = read_data(dicom_path)
     for mrt in mrts:
+        outdir = output_path.joinpath('images', mrt.path.name)
+        outdir.mkdir(exist_ok=True)
         for layer in mrt.layers:
             layer.process()
-
+            cv2.imwrite(str(outdir.joinpath(layer.name+'.png')), layer.gray_img)
 
 def create_structure(output_path):
     print('creating project structure')
@@ -97,8 +115,9 @@ def read_data(base_path):
         for ima_path in mrt_dir.glob('*.IMA'):
             name = ima_path.stem + '.txt'
             contour_path = mrt_dir.joinpath('Save/Autosave').joinpath(name)
-            layer = Layer(ima_path, contour_path)
-            mrt.layers.append(layer)
+            if contour_path.exists():
+                layer = Layer(ima_path, contour_path)
+                mrt.layers.append(layer)
 
         mrts.append(mrt)
 
