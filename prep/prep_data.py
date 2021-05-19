@@ -1,19 +1,18 @@
 from pathlib import Path
-import os
 
 
-def prepare_data(dicomPath, outputPath):
-    create_structure(outputPath)
+def prepare_data(dicom_path, output_path):
+    create_structure(output_path)
     print('prepare data')
 
 
-def create_structure(outputPath):
+def create_structure(output_path):
     print('creating project structure')
-    imagePath = outputPath.joinpath(Path("images"))
-    labelPath = outputPath.joinpath(Path("labels"))
-    colorPath = outputPath.joinpath(Path("colors"))
-    
-    outputPath.mkdir(exist_ok = True)
-    imagePath.mkdir(exist_ok = True)
-    labelPath.mkdir(exist_ok = True)
-    colorPath.mkdir(exist_ok = True)
+    image_path = output_path.joinpath(Path("images"))
+    label_path = output_path.joinpath(Path("labels"))
+    color_path = output_path.joinpath(Path("colors"))
+
+    output_path.mkdir(exist_ok=True)
+    image_path.mkdir(exist_ok=True)
+    label_path.mkdir(exist_ok=True)
+    color_path.mkdir(exist_ok=True)
