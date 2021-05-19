@@ -53,13 +53,6 @@ def create_structure(output_path):
     color_path.mkdir(exist_ok=True)
 
 
-# from pydicom import dcmread
-# from pydicom.data import get_testdata_file
-
-
-filename = "data/OrthosisMRT/E_BL_TSE_DIXON_CONTROL_LEG_45MIN_OPP_0043/NUTRIHEP_BASELINE_E.MR.NUTRIHEP_23NA_1H.0043.0001.2014.04.05.11.58.45.500000.11978408.IMA"
-
-
 def gray_scale_transform(x, y_min, y_max, c, w):
     if x <= c - 0.5 - (w - 1) / 2:
         return y_min
