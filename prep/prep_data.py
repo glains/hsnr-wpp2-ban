@@ -26,6 +26,7 @@ class Layer:
         self._convert_data()
         mask = self._remove_background()
         input_contour = self.contour_reader.parseFile(self.contours)
+        self._generate_label_image(mask, input_contour)
 
     def _convert_data(self):
         ds = pydicom.dcmread(self.mrt_path)
@@ -86,7 +87,10 @@ class Layer:
         res = mask
         for i,contour in enumerate(contours):
             res = cv2.drawContours(res, [contour], -1, i+2, cv2.FILLED)
-        test = cv2.convertScaleAbs(res)
+        test = None
+        test = cv2.normalize(res, test,alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        test = (test*255).astype(np.uint8)
+
         self.label_image = res
 
 def prepare_data(dicom_path, output_path):

@@ -16,7 +16,7 @@ class ContourReader:
                     continue
                 points = parts1[1].split(",")
                 points = points[0:len(points)-1]
-                tarr = np.ndarray((len(points),1,2),dtype=np.uint32)
+                tarr = np.ndarray((len(points),1,2),dtype=np.int32)
                 for i,p in enumerate(points):
                     parr = p.split("|")
                     tarr[i,0,0] = int(parr[0])
