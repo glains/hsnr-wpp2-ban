@@ -84,11 +84,11 @@ class Layer:
 
     def _generate_label_image(self, mask, contours):
         res = mask
-        for i,contour in enumerate(contours):
-            res = cv2.drawContours(res, [contour], -1, i+2, cv2.FILLED)
+        for i, contour in enumerate(contours):
+            res = cv2.drawContours(res, [contour], -1, i + 2, cv2.FILLED)
         test = None
-        test = cv2.normalize(res, test,alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-        test = (test*255).astype(np.uint8)
+        test = cv2.normalize(res, test, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+        test = (test * 255).astype(np.uint8)
 
         self.label_image = res
 
@@ -99,12 +99,16 @@ def prepare_data(dicom_path, output_path):
     print('prepare data')
     mrts = read_data(dicom_path)
     for mrt in mrts:
-        outdir = output_path.joinpath('images', mrt.path.name)
-        outdir.mkdir(exist_ok=True)
+        img_dir = output_path.joinpath('images', mrt.path.name)
+        lab_dir = output_path.joinpath('labels', mrt.path.name)
+        col_dir = output_path.joinpath('colors', mrt.path.name)
+
         for layer in mrt.layers:
             layer.process()
-            cv2.imwrite(str(outdir.joinpath(layer.name + '.png')), layer.gray_img)
-            color_img_from_labels(layer.gray_img)
+            cv2.imwrite(str(img_dir.joinpath(layer.name + '.png')), layer.gray_img)
+            cv2.imwrite(str(lab_dir.joinpath(layer.name + '.png')), layer.label_image)
+            img_color = color_img_from_labels(layer.label_image)
+            cv2.imwrite(str(col_dir.joinpath(layer.name + '.png')), img_color)
 
 
 def create_structure(output_path):
@@ -119,23 +123,13 @@ def create_structure(output_path):
     color_path.mkdir(exist_ok=True)
 
 
-def color_img_from_labels(img_labels, num_labels=7):
-    shape = img_labels.shape
-    img_color = np.zeros((shape[0], shape[1], 3))
+def color_img_from_labels(img_labels):
+    label_hue = np.uint8(179 * img_labels / np.max(img_labels))
+    blank_ch = 255 * np.ones_like(label_hue)
+    img_color = cv2.merge([label_hue, blank_ch, blank_ch])
 
-    palette = np.array([
-        [0, 0, 0],
-        [255, 33, 0],
-        [225, 67, 12],
-        [85, 100, 67],
-        [0, 133, 100],
-        [0, 167, 100],
-        [0, 200, 100]
-    ])
-
-    img_color = np.zeros((shape[0], shape[1], 3))
-    for i in range(num_labels):
-        img_color[img_labels == i] = palette[i % num_labels]
+    img_color = cv2.cvtColor(img_color, cv2.COLOR_HSV2BGR)
+    img_color[label_hue == 0] = 0
 
     return img_color
 
