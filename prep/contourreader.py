@@ -1,4 +1,5 @@
 import os.path
+import numpy as np
 
 class ContourReader:
     def __init__(self):
@@ -14,11 +15,12 @@ class ContourReader:
                 if len(parts1[1]) == 0:
                     continue
                 points = parts1[1].split(",")
-                points = points[0:len(points)-1]# Remove last
-                tarr = []
-                for p in points:
+                points = points[0:len(points)-1]
+                tarr = np.ndarray((len(points),1,2),dtype=np.uint32)
+                for i,p in enumerate(points):
                     parr = p.split("|")
-                    tarr.append([int(parr[0]),int(parr[1])])
+                    tarr[i,0,0] = int(parr[0])
+                    tarr[i,0,1] = int(parr[1])
                 areas.append(tarr)
         return areas
     
