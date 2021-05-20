@@ -5,6 +5,8 @@ import pydicom
 
 import cv2
 
+import prep.contourreader as contourreader
+
 
 def gray_scale_transform(x, y_min, y_max, c, w):
     if x <= c - 0.5 - (w - 1) / 2:
@@ -23,14 +25,16 @@ class MRT:
 
 
 class Layer:
-    def __init__(self, mrt_path, contours_path):
+    def __init__(self, mrt_path, contours_path,contour_reader):
         self.mrt_path = mrt_path
         self.contours = contours_path
         self.gray_img = None
+        self.contour_reader = contour_reader
 
     def process(self):
         self._convert_data()
         contour = self._remove_background()
+        manual_contour = self.contour_reader.parseFile(self.contours)
 
     def _convert_data(self):
         ds = pydicom.dcmread(self.mrt_path)
@@ -89,6 +93,7 @@ def create_structure(output_path):
 
 
 def read_data(base_path):
+    cr = contourreader.ContourReader()
     mrts = []
     for mrt_dir in Path.iterdir(base_path):
         mrt = MRT(mrt_dir)
@@ -96,7 +101,7 @@ def read_data(base_path):
         for ima_path in mrt_dir.glob('*.IMA'):
             name = ima_path.stem + '.txt'
             contour_path = mrt_dir.joinpath('Save/Autosave').joinpath(name)
-            layer = Layer(ima_path, contour_path)
+            layer = Layer(ima_path, contour_path,cr)
             mrt.layers.append(layer)
 
         mrts.append(mrt)
