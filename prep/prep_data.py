@@ -21,6 +21,7 @@ class Layer:
         self.gray_img = None
         self.contour_reader = contour_reader
         self.name = mrt_path.stem
+        self.label_image = None
 
     def process(self):
         self._convert_data()
@@ -29,17 +30,17 @@ class Layer:
         self._generate_label_image(mask, input_contour)
 
     def _convert_data(self):
-        ds = pydicom.dcmread(self.mrt_path)
-        window_center = ds[0x0028, 0x1050]
-        window_width = ds[0x0028, 0x1051]
+        dataset = pydicom.dcmread(self.mrt_path)
+        window_center = dataset[0x0028, 0x1050]
+        window_width = dataset[0x0028, 0x1051]
 
         w_center = window_center.value
         w_width = window_width.value
-        smallMask = ds.pixel_array < w_center - 0.5 - ((w_width - 1) / 2)
-        bigMask = ds.pixel_array > w_center - 0.5 + ((w_width - 1) / 2)
-        target = (((ds.pixel_array - (w_center - 0.5)) / (w_width - 1)) + 0.5) * (255 - 0) + 0
-        target[smallMask] = 0
-        target[bigMask] = 255
+        small_mask = dataset.pixel_array < w_center - 0.5 - ((w_width - 1) / 2)
+        big_mask = dataset.pixel_array > w_center - 0.5 + ((w_width - 1) / 2)
+        target = (((dataset.pixel_array - (w_center - 0.5)) / (w_width - 1)) + 0.5) * (255 - 0) + 0
+        target[small_mask] = 0
+        target[big_mask] = 255
         target = target.astype(np.uint8)
 
         self.gray_img = target
@@ -103,7 +104,7 @@ def prepare_data(dicom_path, output_path):
         img_dir.mkdir(exist_ok = True)
         lab_dir.mkdir(exist_ok = True)
         col_dir.mkdir(exist_ok = True)
-        
+
         for layer in mrt.layers:
             layer.process()
             cv2.imwrite(str(img_dir.joinpath(layer.name + '.png')), layer.gray_img)
@@ -140,7 +141,7 @@ def color_img_from_labels(img_labels):
 
 
 def read_data(base_path):
-    cr = contourreader.ContourReader()
+    contour_reader = contourreader.ContourReader()
     mrts = []
     for mrt_dir in Path.iterdir(base_path):
         mrt = MRT(mrt_dir)
@@ -149,7 +150,7 @@ def read_data(base_path):
             name = ima_path.stem + '.txt'
             contour_path = mrt_dir.joinpath('Save/Autosave').joinpath(name)
             if contour_path.exists():
-                layer = Layer(ima_path, contour_path, cr)
+                layer = Layer(ima_path, contour_path, contour_reader)
                 mrt.layers.append(layer)
 
         mrts.append(mrt)
