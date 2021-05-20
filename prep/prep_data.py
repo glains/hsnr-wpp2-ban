@@ -82,8 +82,12 @@ class Layer:
         self.gray_img = cv2.multiply(self.gray_img, mask)
         return mask
 
-def _generate_label_image(self, mask, contours):
-    pass
+    def _generate_label_image(self, mask, contours):
+        res = mask
+        for i,contour in enumerate(contours):
+            res = cv2.drawContours(res, [contour], -1, i+2, cv2.FILLED)
+        test = cv2.convertScaleAbs(res)
+        self.label_image = res
 
 def prepare_data(dicom_path, output_path):
     create_structure(output_path)
