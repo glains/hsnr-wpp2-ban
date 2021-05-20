@@ -12,7 +12,8 @@ class ContourReader:
             if line.find("AllPoints") > -1:
                 line = line[9:]
                 parts1 = line.split(":")
-                if len(parts1[1]) == 0:
+                segId = int(parts1[0])
+                if len(parts1[1]) == 0 or segId > 4: # skip 
                     continue
                 points = parts1[1].split(",")
                 points = points[0:len(points)-1]
