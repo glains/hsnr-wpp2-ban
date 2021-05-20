@@ -58,12 +58,12 @@ class Layer:
                 max_size = size
                 max_contour = contour
 
-        mask = np.zeros((buf.shape[0], buf.shape[1], 1), dtype=np.uint8)
+        mask = np.zeros((buf.shape[0], buf.shape[1]), dtype=np.uint8)
         mask = cv2.drawContours(mask, [max_contour], -1, 1, cv2.FILLED)
 
         hull = cv2.convexHull(max_contour)
 
-        convex_mask = np.zeros((self.gray_img.shape[0], self.gray_img.shape[1], 1), dtype=np.uint8)
+        convex_mask = np.zeros((self.gray_img.shape[0], self.gray_img.shape[1]), dtype=np.uint8)
         convex_mask = cv2.drawContours(convex_mask, [hull], -1, 1, cv2.FILLED)
         diff = convex_mask - mask
 
@@ -86,9 +86,6 @@ class Layer:
         res = mask
         for i,contour in enumerate(contours):
             res = cv2.drawContours(res, [contour], -1, i+2, cv2.FILLED)
-        test = None
-        test = cv2.normalize(res, test,alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-        test = (test*255).astype(np.uint8)
 
         self.label_image = res
 
@@ -104,7 +101,7 @@ def prepare_data(dicom_path, output_path):
         for layer in mrt.layers:
             layer.process()
             cv2.imwrite(str(outdir.joinpath(layer.name + '.png')), layer.gray_img)
-            color_img_from_labels(layer.gray_img)
+            color_img_from_labels(layer.label_image)
 
 
 def create_structure(output_path):
@@ -125,17 +122,17 @@ def color_img_from_labels(img_labels, num_labels=7):
 
     palette = np.array([
         [0, 0, 0],
-        [255, 33, 0],
-        [225, 67, 12],
-        [85, 100, 67],
-        [0, 133, 100],
-        [0, 167, 100],
-        [0, 200, 100]
+        [0, 33, 255],
+        [12, 67, 225],
+        [67, 100, 85],
+        [100, 133, 0],
+        [100, 167, 0],
+        [100, 200, 0]
     ])
 
-    img_color = np.zeros((shape[0], shape[1], 3))
+    img_color = np.zeros((shape[0], shape[1], 3), dtype=np.uint8)
     for i in range(num_labels):
-        img_color[img_labels == i] = palette[i % num_labels]
+        img_color[img_labels==i] = palette[i]
 
     return img_color
 
