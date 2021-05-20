@@ -2,17 +2,9 @@ from pathlib import Path
 
 import numpy as np
 import pydicom
+import time
 
 import cv2
-
-def gray_scale_transform(x, y_min, y_max, c, w):
-    if x <= c - 0.5 - (w - 1) / 2:
-        return y_min
-    elif x > c - 0.5 + (w - 1) / 2:
-        return y_max
-    else:
-        return ((x - (c - 0.5)) / (w - 1) + 0.5) * (y_max - y_min) + y_min
-
 
 class MRT:
 
@@ -30,18 +22,23 @@ class Layer:
 
     def process(self):
         self._convert_data()
-        self._remove_background()
+        mask = self._remove_background()
+        #self._generate_label_image()
 
     def _convert_data(self):
         ds = pydicom.dcmread(self.mrt_path)
         window_center = ds[0x0028, 0x1050]
         window_width = ds[0x0028, 0x1051]
-        target = np.zeros((len(ds.pixel_array), len(ds.pixel_array[0]), 1), dtype=np.uint8)
-        for y, row in enumerate(ds.pixel_array):
-            for x, pixel in enumerate(row):
-                if pixel > 255:
-                    target[x, y] = gray_scale_transform(pixel, 0, 255, window_center.value, window_width.value)
-        
+
+        wCenter = window_center.value
+        wWidth = window_width.value
+        smallMask = ds.pixel_array < wCenter - 0.5 - ((wWidth - 1) / 2)
+        bigMask = ds.pixel_array >  wCenter - 0.5 + ((wWidth - 1) / 2)
+        target = (((ds.pixel_array - (wCenter - 0.5)) / (wWidth - 1)) + 0.5) * (255-0) + 0
+        target[smallMask] = 0
+        target[bigMask] = 255
+        target = target.astype(np.uint8)
+
         self.gray_img = target
     
     def _remove_background(self):
@@ -68,7 +65,7 @@ class Layer:
         convexMask = cv2.drawContours(convexMask, [hull], -1, 1, cv2.FILLED)
         diff = convexMask - mask       
 
-        maxBoneSize = 0
+        maxBoneSize = -1
         maxBone = None
         for contour in cv2.findContours(diff, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)[0]:
             size = cv2.contourArea(contour)
@@ -81,6 +78,10 @@ class Layer:
         
         mask += boneImg
         self.gray_img = cv2.multiply(self.gray_img, mask)
+        return mask
+
+def _generate_label_image(self, mask, contours):
+    pass
 
 def prepare_data(dicom_path, output_path):
     create_structure(output_path)
