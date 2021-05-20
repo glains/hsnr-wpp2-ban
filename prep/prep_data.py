@@ -100,6 +100,10 @@ def prepare_data(dicom_path, output_path):
         lab_dir = output_path.joinpath('labels', mrt.path.name)
         col_dir = output_path.joinpath('colors', mrt.path.name)
 
+        img_dir.mkdir(exist_ok = True)
+        lab_dir.mkdir(exist_ok = True)
+        col_dir.mkdir(exist_ok = True)
+        
         for layer in mrt.layers:
             layer.process()
             cv2.imwrite(str(img_dir.joinpath(layer.name + '.png')), layer.gray_img)
