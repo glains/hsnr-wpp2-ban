@@ -1,11 +1,11 @@
 from pathlib import Path
 
+import cv2
 import numpy as np
 import pydicom
 
-import cv2
-
 import prep.contourreader as contourreader
+
 
 class MRT:
 
@@ -15,7 +15,7 @@ class MRT:
 
 
 class Layer:
-    def __init__(self, mrt_path, contours_path,contour_reader):
+    def __init__(self, mrt_path, contours_path, contour_reader):
         self.mrt_path = mrt_path
         self.contours = contours_path
         self.gray_img = None
@@ -35,8 +35,8 @@ class Layer:
         w_center = window_center.value
         w_width = window_width.value
         smallMask = ds.pixel_array < w_center - 0.5 - ((w_width - 1) / 2)
-        bigMask = ds.pixel_array >  w_center - 0.5 + ((w_width - 1) / 2)
-        target = (((ds.pixel_array - (w_center - 0.5)) / (w_width - 1)) + 0.5) * (255-0) + 0
+        bigMask = ds.pixel_array > w_center - 0.5 + ((w_width - 1) / 2)
+        target = (((ds.pixel_array - (w_center - 0.5)) / (w_width - 1)) + 0.5) * (255 - 0) + 0
         target[smallMask] = 0
         target[bigMask] = 255
         target = target.astype(np.uint8)
@@ -44,7 +44,7 @@ class Layer:
         self.gray_img = target
 
     def _remove_background(self):
-        buf = cv2.blur(self.gray_img,(5, 5))
+        buf = cv2.blur(self.gray_img, (5, 5))
         buf = cv2.threshold(buf, 36, 255, cv2.THRESH_BINARY)[1]
         contours = []
         contours, _ = cv2.findContours(buf, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE, contours=contours)
@@ -56,16 +56,15 @@ class Layer:
             if size > max_size:
                 max_size = size
                 max_contour = contour
-        
+
         mask = np.zeros((buf.shape[0], buf.shape[1], 1), dtype=np.uint8)
         mask = cv2.drawContours(mask, [max_contour], -1, 1, cv2.FILLED)
-        
 
         hull = cv2.convexHull(max_contour)
 
         convex_mask = np.zeros((self.gray_img.shape[0], self.gray_img.shape[1], 1), dtype=np.uint8)
         convex_mask = cv2.drawContours(convex_mask, [hull], -1, 1, cv2.FILLED)
-        diff = convex_mask - mask       
+        diff = convex_mask - mask
 
         max_bone_size = -1
         max_bone = None
@@ -77,13 +76,15 @@ class Layer:
 
         bone_img = np.zeros(diff.shape, dtype=np.uint8)
         bone_img = cv2.drawContours(bone_img, [max_bone], -1, 1, cv2.FILLED)
-        
+
         mask += bone_img
         self.gray_img = cv2.multiply(self.gray_img, mask)
         return mask
 
+
 def _generate_label_image(self, mask, contours):
     pass
+
 
 def prepare_data(dicom_path, output_path):
     create_structure(output_path)
@@ -95,7 +96,9 @@ def prepare_data(dicom_path, output_path):
         outdir.mkdir(exist_ok=True)
         for layer in mrt.layers:
             layer.process()
-            cv2.imwrite(str(outdir.joinpath(layer.name+'.png')), layer.gray_img)
+            cv2.imwrite(str(outdir.joinpath(layer.name + '.png')), layer.gray_img)
+            color_img_from_labels(layer.gray_img)
+
 
 def create_structure(output_path):
     print('creating project structure')
@@ -109,6 +112,27 @@ def create_structure(output_path):
     color_path.mkdir(exist_ok=True)
 
 
+def color_img_from_labels(img_labels, num_labels=7):
+    shape = img_labels.shape
+    img_color = np.zeros((shape[0], shape[1], 3))
+
+    palette = np.array([
+        [0, 0, 0],
+        [255, 33, 0],
+        [225, 67, 12],
+        [85, 100, 67],
+        [0, 133, 100],
+        [0, 167, 100],
+        [0, 200, 100]
+    ])
+
+    img_color = np.zeros((shape[0], shape[1], 3))
+    for i in range(num_labels):
+        img_color[img_labels == i] = palette[i % num_labels]
+
+    return img_color
+
+
 def read_data(base_path):
     cr = contourreader.ContourReader()
     mrts = []
@@ -119,7 +143,7 @@ def read_data(base_path):
             name = ima_path.stem + '.txt'
             contour_path = mrt_dir.joinpath('Save/Autosave').joinpath(name)
             if contour_path.exists():
-                layer = Layer(ima_path, contour_path,cr)
+                layer = Layer(ima_path, contour_path, cr)
                 mrt.layers.append(layer)
 
         mrts.append(mrt)
