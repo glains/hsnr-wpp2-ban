@@ -84,8 +84,8 @@ class Layer:
 
     def _generate_label_image(self, mask, contours):
         res = mask
-        for i,contour in enumerate(contours):
-            res = cv2.drawContours(res, [contour], -1, i+2, cv2.FILLED)
+        for i, contour in enumerate(contours):
+            res = cv2.drawContours(res, [contour], -1, i + 2, cv2.FILLED)
 
         self.label_image = res
 
@@ -120,23 +120,17 @@ def create_structure(output_path):
     color_path.mkdir(exist_ok=True)
 
 
-def color_img_from_labels(img_labels, num_labels=7):
-    shape = img_labels.shape
-    img_color = np.zeros((shape[0], shape[1], 3))
+def color_img_from_labels(img_labels):
+    np_max = np.max(img_labels) + 3
+    step = np.uint8(360 / np_max)
+    label_hue = np.uint8(img_labels * step)
+    blank_ch = 255 * np.ones_like(label_hue)
+    img_color = cv2.merge([label_hue, blank_ch, blank_ch])
 
-    palette = np.array([
-        [0, 0, 0],
-        [0, 33, 255],
-        [12, 67, 225],
-        [67, 100, 85],
-        [100, 133, 0],
-        [100, 167, 0],
-        [100, 200, 0]
-    ])
+    img_color = cv2.cvtColor(img_color, cv2.COLOR_HSV2BGR)
 
-    img_color = np.zeros((shape[0], shape[1], 3), dtype=np.uint8)
-    for i in range(num_labels):
-        img_color[img_labels == i] = palette[i]
+    img_color[label_hue == 0] = 0
+    img_color[label_hue == step] = 255
 
     return img_color
 
