@@ -2,7 +2,6 @@ from pathlib import Path
 
 import numpy as np
 import pydicom
-import time
 
 import cv2
 
@@ -30,53 +29,53 @@ class Layer:
         window_center = ds[0x0028, 0x1050]
         window_width = ds[0x0028, 0x1051]
 
-        wCenter = window_center.value
-        wWidth = window_width.value
-        smallMask = ds.pixel_array < wCenter - 0.5 - ((wWidth - 1) / 2)
-        bigMask = ds.pixel_array >  wCenter - 0.5 + ((wWidth - 1) / 2)
-        target = (((ds.pixel_array - (wCenter - 0.5)) / (wWidth - 1)) + 0.5) * (255-0) + 0
+        w_center = window_center.value
+        w_width = window_width.value
+        smallMask = ds.pixel_array < w_center - 0.5 - ((w_width - 1) / 2)
+        bigMask = ds.pixel_array >  w_center - 0.5 + ((w_width - 1) / 2)
+        target = (((ds.pixel_array - (w_center - 0.5)) / (w_width - 1)) + 0.5) * (255-0) + 0
         target[smallMask] = 0
         target[bigMask] = 255
         target = target.astype(np.uint8)
 
         self.gray_img = target
-    
+
     def _remove_background(self):
         buf = cv2.blur(self.gray_img,(5, 5))
         buf = cv2.threshold(buf, 36, 255, cv2.THRESH_BINARY)[1]
         contours = []
-        contours, _ = cv2.findContours(buf,cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE, contours=contours)
+        contours, _ = cv2.findContours(buf, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE, contours=contours)
 
-        maxSize = 0
-        maxContour = None
+        max_size = 0
+        max_contour = None
         for contour in contours:
             size = cv2.contourArea(contour)
-            if size > maxSize:
-                maxSize = size
-                maxContour = contour
+            if size > max_size:
+                max_size = size
+                max_contour = contour
         
         mask = np.zeros((buf.shape[0], buf.shape[1], 1), dtype=np.uint8)
-        mask = cv2.drawContours(mask, [maxContour], -1, 1, cv2.FILLED)
+        mask = cv2.drawContours(mask, [max_contour], -1, 1, cv2.FILLED)
         
 
-        hull = cv2.convexHull(maxContour)
+        hull = cv2.convexHull(max_contour)
 
-        convexMask = np.zeros((self.gray_img.shape[0], self.gray_img.shape[1], 1), dtype=np.uint8)
-        convexMask = cv2.drawContours(convexMask, [hull], -1, 1, cv2.FILLED)
-        diff = convexMask - mask       
+        convex_mask = np.zeros((self.gray_img.shape[0], self.gray_img.shape[1], 1), dtype=np.uint8)
+        convex_mask = cv2.drawContours(convex_mask, [hull], -1, 1, cv2.FILLED)
+        diff = convex_mask - mask       
 
-        maxBoneSize = -1
-        maxBone = None
+        max_bone_size = -1
+        max_bone = None
         for contour in cv2.findContours(diff, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)[0]:
             size = cv2.contourArea(contour)
-            if size > maxBoneSize:
-                maxBoneSize = size
-                maxBone = contour
+            if size > max_bone_size:
+                max_bone_size = size
+                max_bone = contour
 
-        boneImg = np.zeros(diff.shape, dtype=np.uint8)
-        boneImg = cv2.drawContours(boneImg, [maxBone], -1, 1, cv2.FILLED)
+        bone_img = np.zeros(diff.shape, dtype=np.uint8)
+        bone_img = cv2.drawContours(bone_img, [max_bone], -1, 1, cv2.FILLED)
         
-        mask += boneImg
+        mask += bone_img
         self.gray_img = cv2.multiply(self.gray_img, mask)
         return mask
 
@@ -105,7 +104,6 @@ def create_structure(output_path):
     image_path.mkdir(exist_ok=True)
     label_path.mkdir(exist_ok=True)
     color_path.mkdir(exist_ok=True)
-
 
 
 def read_data(base_path):
