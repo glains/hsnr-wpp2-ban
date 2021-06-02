@@ -2,3 +2,4 @@ numpy
 opencv-python
 pydicom
 matplotlib
+tensorflow==2.3.1
