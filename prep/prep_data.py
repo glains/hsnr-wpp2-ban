@@ -96,10 +96,11 @@ def prepare_data(dicom_path, output_path):
 
     print('prepare data')
     mrts = read_data(dicom_path)
+    imgCounter = 0
     for mrt in mrts:
-        img_dir = output_path.joinpath('images', mrt.path.name)
-        lab_dir = output_path.joinpath('labels', mrt.path.name)
-        col_dir = output_path.joinpath('colors', mrt.path.name)
+        img_dir = output_path.joinpath('images')#, mrt.path.name)
+        lab_dir = output_path.joinpath('labels')#, mrt.path.name)
+        col_dir = output_path.joinpath('colors')#, mrt.path.name)
 
         img_dir.mkdir(exist_ok = True)
         lab_dir.mkdir(exist_ok = True)
@@ -107,10 +108,11 @@ def prepare_data(dicom_path, output_path):
 
         for layer in mrt.layers:
             layer.process()
-            cv2.imwrite(str(img_dir.joinpath(layer.name + '.png')), layer.gray_img)
-            cv2.imwrite(str(lab_dir.joinpath(layer.name + '.png')), layer.label_image)
+            cv2.imwrite(str(img_dir.joinpath(str(imgCounter) + '.png')), layer.gray_img)
+            cv2.imwrite(str(lab_dir.joinpath(str(imgCounter) + '.png')), layer.label_image)
             img_color = color_img_from_labels(layer.label_image)
-            cv2.imwrite(str(col_dir.joinpath(layer.name + '.png')), img_color)
+            cv2.imwrite(str(col_dir.joinpath(str(imgCounter) + '.png')), img_color)
+            imgCounter = imgCounter + 1
 
 
 def create_structure(output_path):
