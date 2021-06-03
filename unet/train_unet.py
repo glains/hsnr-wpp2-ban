@@ -6,7 +6,9 @@ from matplotlib import pyplot as plt
 import math
 import argparse
 from vendor.unet import unet
-
+import pickle
+from matplotlib import pyplot
+import numpy as np
 
 
 def load_data(xPath:Path, yPath:Path, batch_size:int):
@@ -53,18 +55,33 @@ def build_unet(batch_size: int, filters_orig: int) -> tf.keras.Model:
     # Input Layer
     x = tf.keras.Input(shape=(256, 256, 1), batch_size=batch_size)
     # Hidden Layer
-    tensor = unet(x, filters_orig=filters_orig, out_channels=7, final_activation='linear', batch_norm=False)
+    tensor = unet(x, filters_orig=filters_orig, out_channels=7, final_activation='linear')
 
     model = tf.keras.Model(inputs=x,outputs=tensor)
     model.compile(
         optimizer="Adam",
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-        metrics=['accuracy']
+        metrics=['sparse_categorical_accuracy']
     )
 
     return model
 
+def plotHistory(loss, accuracy, title):
+    plt.plot(np.arange(len(loss))+0.5, loss, "b-", label="Loss")
+    plt.plot(np.arange(len(accuracy))+0.5, accuracy, "r-", label="Accuracy")
+    plt.title(title)
+    plt.ylim([0,1])
+    plt.xlim([0, len(loss)])
+    plt.legend()
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss/Accuracy")
+    plt.grid(True)
+
+    plt.savefig('last_'+title+'.pdf')
+    plt.close()
+
 if __name__=="__main__":
+    #np.random.seed(2623)
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-i', type=Path, action='store', dest='inputPath', required=True)
@@ -80,7 +97,15 @@ if __name__=="__main__":
         print('label shape=%s' % e[1].get_shape().as_list())
  
     model = build_unet(args.batchSize, args.filtersOrig)
-    
-    model.fit(train, epochs=100, validation_data=val, callbacks=[EarlyStopping(monitor='val_loss', patience=3, restore_best_weights = True)])
+
+    history = model.fit(train, epochs=100, validation_data=val, callbacks=[EarlyStopping(monitor='val_loss', patience=100, restore_best_weights = True)])
+    model.save_weights('last_weights.ckpt')
+    pickle.dump(history.history, open('last_history.dmp', 'wb'))#failsafe
+
+    plotHistory(history.history["loss"], history.history["sparse_categorical_accuracy"], "training")
+    plotHistory(history.history["val_loss"], history.history["val_sparse_categorical_accuracy"], "validation")
+
+
+
 
 
