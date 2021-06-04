@@ -136,3 +136,4 @@ dmypy.json
 
 # Input Data
 OrthosisMRT
+*.pdf

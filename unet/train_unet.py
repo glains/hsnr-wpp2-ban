@@ -2,7 +2,7 @@ from tensorflow.python.keras.callbacks import EarlyStopping
 from vendor import unet
 import tensorflow as tf
 from pathlib import Path
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, ticker
 import math
 import argparse
 from vendor.unet import unet
@@ -67,17 +67,30 @@ def build_unet(batch_size: int, filters_orig: int) -> tf.keras.Model:
     return model
 
 def plotHistory(loss, accuracy, title):
-    plt.plot(np.arange(len(loss))+0.5, loss, "b-", label="Loss")
-    plt.plot(np.arange(len(accuracy))+0.5, accuracy, "r-", label="Accuracy")
-    plt.title(title)
-    plt.ylim([0,1])
-    plt.xlim([0, len(loss)])
-    plt.legend()
-    plt.xlabel("Epochs")
-    plt.ylabel("Loss/Accuracy")
-    plt.grid(True)
+    fig, ax1 = plt.subplots()
+    color = 'tab:red'
+    ax1.set_xlabel('Epochs')
+    ax1.set_ylabel('Loss', color=color)
+    ax1.plot(np.arange(len(loss))+0.5, loss, "-", label="Loss",color=color)
+    ax1.tick_params(axis='y', labelcolor=color)
 
-    plt.savefig('last_'+title+'.pdf')
+    ax2 = ax1.twinx()
+
+    color = 'tab:blue'
+    ax2.set_ylabel('accuracy', color=color)
+    ax2.set_ylim([0.5, 1])
+    ax2.plot(np.arange(len(accuracy))+0.5, accuracy, "-", label="Accuracy", color=color)
+    ax2.tick_params(axis='y', labelcolor=color)
+    ax2.yaxis.set_major_locator(ticker.MultipleLocator(0.05))
+    ax2.grid(True)
+
+    #fig.xlim([0, len(loss)])
+    ax1.legend(loc='upper left')
+    ax2.legend(loc='lower left')
+    fig.tight_layout()
+
+    plt.title(title)
+    plt.savefig('last_'+title+'.pdf', bbox_inches='tight')
     plt.close()
 
 if __name__=="__main__":
